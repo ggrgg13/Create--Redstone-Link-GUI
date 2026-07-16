@@ -125,6 +125,7 @@ public class FrequencyPresetPanel {
     private final BlockPos linkPos;
     private final int panelX;
     private final int panelY;
+    private final int cellIndex; // -1 for regular links, >= 0 for TinyRedstoneLink
     private final List<Rect2i> slotBounds;
     private final List<Rect2i> copyBtnBounds;
     private final List<Rect2i> pasteBtnBounds;
@@ -132,11 +133,17 @@ public class FrequencyPresetPanel {
 
     public FrequencyPresetPanel(int panelX, int panelY, BlockPos linkPos, FrequencyPresetData presetData,
                                 Supplier<Boolean> copyEnabled) {
+        this(panelX, panelY, linkPos, presetData, copyEnabled, -1);
+    }
+
+    public FrequencyPresetPanel(int panelX, int panelY, BlockPos linkPos, FrequencyPresetData presetData,
+                                Supplier<Boolean> copyEnabled, int cellIndex) {
         this.panelX = panelX;
         this.panelY = panelY;
         this.linkPos = linkPos;
         this.presetData = presetData;
         this.copyEnabled = copyEnabled;
+        this.cellIndex = cellIndex;
         this.slotBounds = new ArrayList<>(FrequencyPresetData.PRESET_COUNT * 2);
         this.copyBtnBounds = new ArrayList<>(FrequencyPresetData.PRESET_COUNT);
         this.pasteBtnBounds = new ArrayList<>(FrequencyPresetData.PRESET_COUNT);
@@ -295,11 +302,11 @@ public class FrequencyPresetPanel {
 
         for (int row = 0; row < FrequencyPresetData.PRESET_COUNT; row++) {
             if (globalCopyEnabled && copyBtnBounds.get(row).contains(mx, my)) {
-                PacketDistributor.sendToServer(new CopyToPresetPayload(linkPos, row));
+                PacketDistributor.sendToServer(new CopyToPresetPayload(linkPos, row, cellIndex));
                 return true;
             }
             if (isPasteEnabled(row) && pasteBtnBounds.get(row).contains(mx, my)) {
-                PacketDistributor.sendToServer(new PasteFromPresetPayload(linkPos, row));
+                PacketDistributor.sendToServer(new PasteFromPresetPayload(linkPos, row, cellIndex));
                 return true;
             }
         }

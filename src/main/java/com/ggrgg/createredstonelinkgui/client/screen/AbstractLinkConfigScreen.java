@@ -143,7 +143,8 @@ public abstract class AbstractLinkConfigScreen<T extends AbstractLinkMenu>
         // Copy is enabled if either frequency slot has an item
         this.presetPanel = new FrequencyPresetPanel(panelX, panelY, this.menu.getPos(), presetData,
             () -> !this.menu.getSlot(0).getItem().isEmpty()
-               || !this.menu.getSlot(1).getItem().isEmpty());
+               || !this.menu.getSlot(1).getItem().isEmpty(),
+            this.menu.getCellIndex());
         this.presetPanelBounds = new Rect2i(panelX, panelY,
             FrequencyPresetPanel.PANEL_WIDTH, FrequencyPresetPanel.PANEL_HEIGHT);
 

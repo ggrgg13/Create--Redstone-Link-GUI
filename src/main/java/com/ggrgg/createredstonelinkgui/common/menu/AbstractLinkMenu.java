@@ -217,4 +217,12 @@ public abstract class AbstractLinkMenu extends AbstractContainerMenu {
     public BlockPos getPos() {
         return this.pos;
     }
+
+    /**
+     * @return cell index for TinyRedstoneLink cells, or -1 for regular links.
+     * Overridden by {@link TinyRedstoneLinkMenu} to return the actual cell index.
+     */
+    public int getCellIndex() {
+        return -1;
+    }
 }

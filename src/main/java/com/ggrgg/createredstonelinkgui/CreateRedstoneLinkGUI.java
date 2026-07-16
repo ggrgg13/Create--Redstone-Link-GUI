@@ -22,11 +22,15 @@ import com.ggrgg.createredstonelinkgui.common.network.VoidLinkClaimPayload;
 import com.ggrgg.createredstonelinkgui.common.network.CopyToPresetPayload;
 import com.ggrgg.createredstonelinkgui.common.network.PasteFromPresetPayload;
 import com.ggrgg.createredstonelinkgui.common.network.PresetSlotUpdatePayload;
+import com.ggrgg.createredstonelinkgui.common.network.TinyLinkScreenSwapPayload;
+import com.ggrgg.createredstonelinkgui.common.network.TinyLinkFreqUpdatePayload;
 import com.ggrgg.createredstonelinkgui.common.preset.FrequencyPresetData;
 import com.ggrgg.createredstonelinkgui.common.menu.RedstoneLinkMenu;
 import com.ggrgg.createredstonelinkgui.common.menu.VoidLinkMenu;
+import com.ggrgg.createredstonelinkgui.common.menu.TinyRedstoneLinkMenu;
 import com.ggrgg.createredstonelinkgui.client.screen.RedstoneLinkConfigScreen;
 import com.ggrgg.createredstonelinkgui.client.screen.VoidLinkConfigScreen;
+import com.ggrgg.createredstonelinkgui.client.screen.TinyRedstoneLinkConfigScreen;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod(CreateRedstoneLinkGUI.MODID)
@@ -53,6 +57,7 @@ public class CreateRedstoneLinkGUI {
         // Setup deferred registry items
         RedstoneLinkMenu.MENUS.register(modEventBus);
         VoidLinkMenu.MENUS.register(modEventBus);
+        TinyRedstoneLinkMenu.MENUS.register(modEventBus);
         
         // Client environment isolation check to block headless server errors
         if (FMLEnvironment.dist == Dist.CLIENT) {
@@ -107,10 +112,22 @@ public class CreateRedstoneLinkGUI {
                 PresetSlotUpdatePayload.CODEC,
                 PresetSlotUpdatePayload::handleServer
         );
+        // TinyCreate compatibility packets
+        registrar.playToServer(
+                TinyLinkScreenSwapPayload.TYPE,
+                TinyLinkScreenSwapPayload.CODEC,
+                TinyLinkScreenSwapPayload::handleServer
+        );
+        registrar.playToServer(
+                TinyLinkFreqUpdatePayload.TYPE,
+                TinyLinkFreqUpdatePayload.CODEC,
+                TinyLinkFreqUpdatePayload::handleServer
+        );
     }
 
     private void registerScreens(RegisterMenuScreensEvent event) {
         event.register(RedstoneLinkMenu.TYPE.get(), RedstoneLinkConfigScreen::new);
         event.register(VoidLinkMenu.TYPE.get(), VoidLinkConfigScreen::new);
+        event.register(TinyRedstoneLinkMenu.TYPE.get(), TinyRedstoneLinkConfigScreen::new);
     }
 }
