@@ -2,8 +2,6 @@ package com.ggrgg.createredstonelinkgui.common;
 
 import java.lang.reflect.Method;
 
-import com.ggrgg.createredstonelinkgui.CreateRedstoneLinkGUI;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -28,7 +26,7 @@ public class TinyRedstoneCreateCompatibility {
     private static final String PANEL_CELL_POS_CLASS_NAME = "com.dannyandson.tinyredstone.blocks.PanelCellPos";
     private static final String FREQ_CLASS_NAME = "com.simibubi.create.content.redstone.link.RedstoneLinkNetworkHandler$Frequency";
 
-    // Cache for reflection targets (resolved once)
+    // Cached reflection targets (resolved once)
     private static Class<?> freqClass = null;
     private static Method freqOfMethod = null;
 
@@ -49,8 +47,8 @@ public class TinyRedstoneCreateCompatibility {
     }
 
     /**
-     * Resolve {@code RedstoneLinkNetworkHandler.Frequency.of(ItemStack)} once.
-     * Create mod classes are server-safe.
+     * Create a {@code RedstoneLinkNetworkHandler.Frequency} from an ItemStack.
+     * Create mod classes are server-safe. Result is cached after first call.
      */
     private static Object createFrequency(ItemStack item) {
         try {
@@ -60,7 +58,6 @@ public class TinyRedstoneCreateCompatibility {
             }
             return freqOfMethod.invoke(null, item);
         } catch (Exception e) {
-            CreateRedstoneLinkGUI.LOGGER.error("createFrequency failed", e);
             return null;
         }
     }
@@ -99,8 +96,6 @@ public class TinyRedstoneCreateCompatibility {
     }
 
     // ==================== LinkProvider access ====================
-    // ONLY field access on TinyRedstoneLink — no method calls that would trigger
-    // class method-table loading (which would force PoseStack resolution).
 
     private static Object getLinkProvider(Object cell) {
         if (cell == null) return null;
@@ -155,10 +150,7 @@ public class TinyRedstoneCreateCompatibility {
 
     /**
      * Set the {@code dirty} flag on TinyRedstoneLink via field reflection.
-     * This is necessary because TinyRedstoneLink.tick() checks {@code dirty} to
-     * decide whether to call updatePowerState() and trigger visual re-renders.
-     * Setting it via field access is safe — it does NOT touch the method table,
-     * so PoseStack is never loaded.
+     * This triggers updatePowerState() on the next tick for visual updates.
      */
     private static void setCellDirty(Object cell) {
         if (cell == null) return;
@@ -166,38 +158,29 @@ public class TinyRedstoneCreateCompatibility {
             java.lang.reflect.Field dirtyField = cell.getClass().getDeclaredField("dirty");
             dirtyField.setAccessible(true);
             dirtyField.setBoolean(cell, true);
-        } catch (Exception e) {
-            CreateRedstoneLinkGUI.LOGGER.warn("setCellDirty failed", e);
-        }
+        } catch (Exception ignored) {}
     }
 
     // ==================== Frequency write ====================
-    // These operate on RedstoneLinkProvider ONLY, avoiding any method-table
-    // access on TinyRedstoneLink (which would trigger PoseStack loading).
 
     public static boolean updateFrequencies(Object cell, ItemStack freq1, ItemStack freq2) {
         Object provider = getLinkProvider(cell);
         if (provider == null) return false;
 
         try {
-            // Create Frequency objects from ItemStacks (Create mod class — server-safe)
             Object f1 = createFrequency(freq1);
             Object f2 = createFrequency(freq2);
             if (f1 == null || f2 == null) return false;
 
-            // Resolve Frequency class for method parameter lookup
-            Class<?> fCls = Class.forName(FREQ_CLASS_NAME);
-            Method method = findDeclaredMethod(provider.getClass(), "updateFrequencies", fCls, fCls);
+            // Ensure freqClass is resolved (createFrequency caches it)
+            if (freqClass == null) return false;
+            Method method = findDeclaredMethod(provider.getClass(), "updateFrequencies", freqClass, freqClass);
             if (method == null) return false;
 
             method.invoke(provider, f1, f2);
-
-            // Signal the cell to re-evaluate its power state on the next tick
             setCellDirty(cell);
-
             return true;
         } catch (Exception e) {
-            CreateRedstoneLinkGUI.LOGGER.error("updateFrequencies failed", e);
             return false;
         }
     }
@@ -205,9 +188,8 @@ public class TinyRedstoneCreateCompatibility {
     // ==================== Transmitter write ====================
 
     /**
-     * Force the RedstoneLinkNetwork to re-evaluate by calling forceUpdate() on the
-     * linkInterface. This ensures that when toggling to receiver mode, the network
-     * immediately pushes signal to the new receiver.
+     * Force network re-evaluation by calling forceUpdate() on the linkInterface.
+     * Needed when toggling to receiver mode so existing transmitters push signal.
      */
     private static void forceNetworkUpdate(Object provider) {
         if (provider == null) return;
@@ -221,9 +203,7 @@ public class TinyRedstoneCreateCompatibility {
                     forceUpdate.invoke(linkInterface);
                 }
             }
-        } catch (Exception e) {
-            CreateRedstoneLinkGUI.LOGGER.warn("forceNetworkUpdate failed", e);
-        }
+        } catch (Exception ignored) {}
     }
 
     public static boolean updateTransmitter(Object cell, boolean transmitter) {
@@ -235,17 +215,10 @@ public class TinyRedstoneCreateCompatibility {
             if (method == null) return false;
 
             method.invoke(provider, transmitter);
-
-            // Signal the cell to re-evaluate its power state on the next tick
             setCellDirty(cell);
-
-            // Force the network to re-evaluate immediately — needed when toggling
-            // to receiver mode so existing transmitters push their signal.
             forceNetworkUpdate(provider);
-
             return true;
         } catch (Exception e) {
-            CreateRedstoneLinkGUI.LOGGER.error("updateTransmitter failed", e);
             return false;
         }
     }
