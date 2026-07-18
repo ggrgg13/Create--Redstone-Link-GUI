@@ -1,7 +1,5 @@
 package com.ggrgg.createredstonelinkgui.common;
 
-import com.ggrgg.createredstonelinkgui.CreateRedstoneLinkGUI;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -48,60 +46,22 @@ public class TinyRedstoneCreateCompatibility {
      */
     public static Object findCell(Level level, BlockPos pos, int cellIndex) {
         resolveClasses();
-        CreateRedstoneLinkGUI.LOGGER.info("findCell: pos={}, cellIndex={}", pos, cellIndex);
-        CreateRedstoneLinkGUI.LOGGER.info("findCell: panelTileClass={}, panelCellPosClass={}, tinyRedstoneLinkClass={}",
-            panelTileClass, panelCellPosClass, tinyRedstoneLinkClass);
-
-        if (panelTileClass == null || panelCellPosClass == null || tinyRedstoneLinkClass == null) {
-            CreateRedstoneLinkGUI.LOGGER.warn("findCell: One or more classes not resolved");
-            return null;
-        }
+        if (panelTileClass == null || panelCellPosClass == null || tinyRedstoneLinkClass == null) return null;
 
         BlockEntity be = level.getBlockEntity(pos);
-        CreateRedstoneLinkGUI.LOGGER.info("findCell: BlockEntity at pos = {}", be != null ? be.getClass().getName() : "null");
-
-        if (be == null) {
-            CreateRedstoneLinkGUI.LOGGER.warn("findCell: BlockEntity is null");
-            return null;
-        }
-
-        if (!panelTileClass.isInstance(be)) {
-            CreateRedstoneLinkGUI.LOGGER.warn("findCell: BlockEntity is not a PanelTile (is {})", be.getClass().getName());
-            return null;
-        }
+        if (be == null || !panelTileClass.isInstance(be)) return null;
 
         try {
             java.lang.reflect.Method fromIdx = panelCellPosClass.getMethod("fromIndex", panelTileClass, Integer.class);
-            CreateRedstoneLinkGUI.LOGGER.info("findCell: Found fromIndex method: {}", fromIdx);
             Object cellPos = fromIdx.invoke(null, be, cellIndex);
-            CreateRedstoneLinkGUI.LOGGER.info("findCell: cellPos={} (class={})", cellPos, cellPos != null ? cellPos.getClass().getName() : "null");
+            if (cellPos == null) return null;
 
-            if (cellPos == null) {
-                CreateRedstoneLinkGUI.LOGGER.warn("findCell: cellPos is null");
-                return null;
+            Object cell = cellPos.getClass().getMethod("getIPanelCell").invoke(cellPos);
+            if (cell != null && tinyRedstoneLinkClass.isInstance(cell)) {
+                return cell;
             }
-
-            java.lang.reflect.Method getCellMethod = cellPos.getClass().getMethod("getIPanelCell");
-            CreateRedstoneLinkGUI.LOGGER.info("findCell: getIPanelCell method found: {}", getCellMethod);
-            Object cell = getCellMethod.invoke(cellPos);
-            CreateRedstoneLinkGUI.LOGGER.info("findCell: cell={} (class={})", cell, cell != null ? cell.getClass().getName() : "null");
-
-            if (cell == null) {
-                CreateRedstoneLinkGUI.LOGGER.warn("findCell: cell is null");
-                return null;
-            }
-
-            if (!tinyRedstoneLinkClass.isInstance(cell)) {
-                CreateRedstoneLinkGUI.LOGGER.warn("findCell: cell is not TinyRedstoneLink (is {})", cell.getClass().getName());
-                return null;
-            }
-
-            CreateRedstoneLinkGUI.LOGGER.info("findCell: SUCCESS - found TinyRedstoneLink cell");
-            return cell;
-        } catch (Exception e) {
-            CreateRedstoneLinkGUI.LOGGER.error("findCell: Exception during cell lookup", e);
-            return null;
-        }
+        } catch (Exception ignored) {}
+        return null;
     }
 
     // ==================== LinkProvider access ====================
@@ -116,7 +76,6 @@ public class TinyRedstoneCreateCompatibility {
             providerField.setAccessible(true);
             return providerField.get(cell);
         } catch (Exception e) {
-            CreateRedstoneLinkGUI.LOGGER.warn("TinyRedstoneCreateCompatibility: Could not get linkProvider from cell", e);
             return null;
         }
     }

@@ -1,6 +1,5 @@
 package com.ggrgg.createredstonelinkgui.common.network;
 
-import com.ggrgg.createredstonelinkgui.CreateRedstoneLinkGUI;
 import com.ggrgg.createredstonelinkgui.common.TinyRedstoneCreateCompatibility;
 import com.ggrgg.createredstonelinkgui.common.menu.TinyRedstoneLinkMenu;
 
@@ -57,19 +56,11 @@ public record TinyLinkScreenSwapPayload(BlockPos pos, int cellIndex, boolean tra
             BlockPos pos = payload.pos();
             Level level = player.level();
 
-            // Validate position — if BlockPos.ZERO was sent (client reflection failed), try to
-            // find the cell from the player's interact range. Otherwise check distance.
-            if (pos.equals(BlockPos.ZERO)) {
-                CreateRedstoneLinkGUI.LOGGER.warn("TinyLinkScreenSwapPayload: Received BlockPos.ZERO from client");
-                // Can't proceed without a valid position
-                return;
-            }
+            // Validate position
+            if (pos.equals(BlockPos.ZERO)) return;
 
             // Distance check
-            if (player.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) > 64.0) {
-                CreateRedstoneLinkGUI.LOGGER.warn("TinyLinkScreenSwapPayload: Player too far from pos {}", pos);
-                return;
-            }
+            if (player.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) > 64.0) return;
 
             // Determine frequencies — try cell fallback if both are empty
             final ItemStack finalFreq1;
@@ -80,12 +71,9 @@ public record TinyLinkScreenSwapPayload(BlockPos pos, int cellIndex, boolean tra
                 if (cell != null) {
                     finalFreq1 = TinyRedstoneCreateCompatibility.getFreq1(cell);
                     finalFreq2 = TinyRedstoneCreateCompatibility.getFreq2(cell);
-                    CreateRedstoneLinkGUI.LOGGER.info("TinyLinkScreenSwapPayload: Read frequencies from cell");
                 } else {
                     finalFreq1 = payload.freq1();
                     finalFreq2 = payload.freq2();
-                    CreateRedstoneLinkGUI.LOGGER.warn("TinyLinkScreenSwapPayload: Could not find cell at pos={}, cellIndex={}",
-                        pos, payload.cellIndex());
                 }
             } else {
                 finalFreq1 = payload.freq1();
