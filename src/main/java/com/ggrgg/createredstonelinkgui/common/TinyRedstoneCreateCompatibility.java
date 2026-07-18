@@ -2,6 +2,8 @@ package com.ggrgg.createredstonelinkgui.common;
 
 import java.lang.reflect.Method;
 
+import com.ggrgg.createredstonelinkgui.CreateRedstoneLinkGUI;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -10,28 +12,28 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 /**
  * Central reflection helper for TinyCreate / TinyRedstone mod compatibility.
  *
- * <p>CRITICAL: All method lookups use {@code getDeclaredMethod()} + {@code setAccessible(true)}
- * instead of {@code getMethod()}. Using getMethod() traverses the FULL inheritance chain
- * including interfaces like IPanelCell. Since TinyRedstoneLink implements IPanelCell,
- * and IPanelCell declares render(PoseStack, ...), getMethod() forces the JVM to resolve
- * PoseStack on the server thread, triggering RuntimeDistCleaner errors.
+ * <p>CRITICAL: Never call getMethod()/getDeclaredMethod() on TinyRedstoneLink
+ * class, OR iterate its declared methods, OR do anything that touches its class.
+ * TinyRedstoneLink.render(PoseStack, ...) forces the JVM to load PoseStack on
+ * any method-table access, which throws on the server.
  *
- * <p>getDeclaredMethod() only looks at the class's own declarations, avoiding interface
- * resolution and the client-only class loading entirely.
+ * <p>Instead, we access the linkProvider field directly (field access doesn't
+ * trigger method-table loading), and operate on RedstoneLinkProvider only
+ * (which has zero client imports).
  */
 public class TinyRedstoneCreateCompatibility {
 
     private static final String PANEL_TILE_CLASS_NAME = "com.dannyandson.tinyredstone.blocks.PanelTile";
     private static final String TINY_REDSTONE_LINK_CLASS_NAME = "com.dfined.minecraft.create.TinyRedstoneLink";
     private static final String PANEL_CELL_POS_CLASS_NAME = "com.dannyandson.tinyredstone.blocks.PanelCellPos";
-    private static final String REDSTONE_LINK_PROVIDER_CLASS_NAME = "com.dfined.minecraft.create.integration.RedstoneLinkProvider";
+    private static final String FREQ_CLASS_NAME = "com.simibubi.create.content.redstone.link.RedstoneLinkNetworkHandler$Frequency";
+
+    // Cache for reflection targets (resolved once)
+    private static Class<?> freqClass = null;
+    private static Method freqOfMethod = null;
 
     // ==================== Reflection helper ====================
 
-    /**
-     * Find a declared method on the given class or any of its superclasses.
-     * Uses getDeclaredMethod + setAccessible to avoid interface resolution.
-     */
     private static Method findDeclaredMethod(Class<?> clazz, String name, Class<?>... paramTypes) {
         Class<?> current = clazz;
         while (current != null && current != Object.class) {
@@ -44,6 +46,23 @@ public class TinyRedstoneCreateCompatibility {
             }
         }
         return null;
+    }
+
+    /**
+     * Resolve {@code RedstoneLinkNetworkHandler.Frequency.of(ItemStack)} once.
+     * Create mod classes are server-safe.
+     */
+    private static Object createFrequency(ItemStack item) {
+        try {
+            if (freqClass == null) {
+                freqClass = Class.forName(FREQ_CLASS_NAME);
+                freqOfMethod = freqClass.getMethod("of", ItemStack.class);
+            }
+            return freqOfMethod.invoke(null, item);
+        } catch (Exception e) {
+            CreateRedstoneLinkGUI.LOGGER.error("createFrequency failed", e);
+            return null;
+        }
     }
 
     // ==================== Cell lookup ====================
@@ -80,6 +99,8 @@ public class TinyRedstoneCreateCompatibility {
     }
 
     // ==================== LinkProvider access ====================
+    // ONLY field access on TinyRedstoneLink — no method calls that would trigger
+    // class method-table loading (which would force PoseStack resolution).
 
     private static Object getLinkProvider(Object cell) {
         if (cell == null) return null;
@@ -133,15 +154,28 @@ public class TinyRedstoneCreateCompatibility {
     }
 
     // ==================== Frequency write ====================
+    // These operate on RedstoneLinkProvider ONLY, avoiding any method-table
+    // access on TinyRedstoneLink (which would trigger PoseStack loading).
 
     public static boolean updateFrequencies(Object cell, ItemStack freq1, ItemStack freq2) {
-        if (cell == null) return false;
+        Object provider = getLinkProvider(cell);
+        if (provider == null) return false;
+
         try {
-            Method method = findDeclaredMethod(cell.getClass(), "updateFrequencies", ItemStack.class, ItemStack.class);
+            // Create Frequency objects from ItemStacks (Create mod class — server-safe)
+            Object f1 = createFrequency(freq1);
+            Object f2 = createFrequency(freq2);
+            if (f1 == null || f2 == null) return false;
+
+            // Resolve Frequency class for method parameter lookup
+            Class<?> fCls = Class.forName(FREQ_CLASS_NAME);
+            Method method = findDeclaredMethod(provider.getClass(), "updateFrequencies", fCls, fCls);
             if (method == null) return false;
-            method.invoke(cell, freq1, freq2);
+
+            method.invoke(provider, f1, f2);
             return true;
         } catch (Exception e) {
+            CreateRedstoneLinkGUI.LOGGER.error("updateFrequencies failed", e);
             return false;
         }
     }
@@ -149,13 +183,17 @@ public class TinyRedstoneCreateCompatibility {
     // ==================== Transmitter write ====================
 
     public static boolean updateTransmitter(Object cell, boolean transmitter) {
-        if (cell == null) return false;
+        Object provider = getLinkProvider(cell);
+        if (provider == null) return false;
+
         try {
-            Method method = findDeclaredMethod(cell.getClass(), "updateTransmitter", boolean.class);
+            Method method = findDeclaredMethod(provider.getClass(), "setTransmitter", boolean.class);
             if (method == null) return false;
-            method.invoke(cell, transmitter);
+
+            method.invoke(provider, transmitter);
             return true;
         } catch (Exception e) {
+            CreateRedstoneLinkGUI.LOGGER.error("updateTransmitter failed", e);
             return false;
         }
     }
