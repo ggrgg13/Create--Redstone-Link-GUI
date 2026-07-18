@@ -106,6 +106,20 @@ public class TinyRedstoneLinkMenu extends AbstractLinkMenu {
         localFreqs[slot].setCount(1);
     }
 
+    // ==================== Preset paste (local update only, no network) ====================
+
+    /**
+     * Update the local frequency cache after a preset paste operation.
+     * Does NOT send a network packet — the server paste handler already
+     * updated the cell. This only refreshes the local display.
+     */
+    public void applyPresetPaste(ItemStack newFreq1, ItemStack newFreq2) {
+        localFreqs[0] = newFreq1.copy();
+        localFreqs[0].setCount(1);
+        localFreqs[1] = newFreq2.copy();
+        localFreqs[1].setCount(1);
+    }
+
     // ==================== Transmitter toggle ====================
 
     /**

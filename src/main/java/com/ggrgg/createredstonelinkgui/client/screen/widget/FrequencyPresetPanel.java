@@ -9,10 +9,13 @@ import com.ggrgg.createredstonelinkgui.common.network.CopyToPresetPayload;
 import com.ggrgg.createredstonelinkgui.common.network.PasteFromPresetPayload;
 import com.ggrgg.createredstonelinkgui.compat.frequency.FrequencyItemHelper;
 
+import com.ggrgg.createredstonelinkgui.common.menu.TinyRedstoneLinkMenu;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -307,6 +310,20 @@ public class FrequencyPresetPanel {
             }
             if (isPasteEnabled(row) && pasteBtnBounds.get(row).contains(mx, my)) {
                 PacketDistributor.sendToServer(new PasteFromPresetPayload(linkPos, row, cellIndex));
+
+                // Update local cache for TinyRedstoneLinkMenu so the display updates immediately
+                if (cellIndex >= 0) {
+                    var mc = Minecraft.getInstance();
+                    if (mc.screen instanceof AbstractContainerScreen<?> containerScreen) {
+                        var menu = containerScreen.getMenu();
+                        if (menu instanceof TinyRedstoneLinkMenu tinyMenu) {
+                            ItemStack freq1 = presetData.getStack(row, 0);
+                            ItemStack freq2 = presetData.getStack(row, 1);
+                            tinyMenu.applyPresetPaste(freq1, freq2);
+                        }
+                    }
+                }
+
                 return true;
             }
         }
