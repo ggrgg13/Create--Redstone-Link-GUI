@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.ggrgg.createredstonelinkgui.client.screen.RedstoneLinkConfigScreen;
+import com.ggrgg.createredstonelinkgui.client.screen.TinyRedstoneLinkConfigScreen;
 import com.ggrgg.createredstonelinkgui.client.screen.VoidLinkConfigScreen;
 
 import dev.emi.emi.api.EmiEntrypoint;
@@ -46,16 +47,21 @@ public class AddonEMIPlugin implements EmiPlugin {
 
     @Override
     public void register(EmiRegistry registry) {
-        // Single generic drag-drop handler for both redstone and void link screens
+        // Single generic drag-drop handler for redstone, void, and tiny link screens
         var handler = new EMIDragDropHandler();
         registry.addDragDropHandler(RedstoneLinkConfigScreen.class, handler);
         registry.addDragDropHandler(VoidLinkConfigScreen.class, handler);
+        registry.addDragDropHandler(TinyRedstoneLinkConfigScreen.class, handler);
 
         registry.addExclusionArea(RedstoneLinkConfigScreen.class, (screen, consumer) -> {
             addArea(screen.blockPreviewBounds, consumer);
             addArea(screen.presetPanelBounds, consumer);
         });
         registry.addExclusionArea(VoidLinkConfigScreen.class, (screen, consumer) -> {
+            addArea(screen.blockPreviewBounds, consumer);
+            addArea(screen.presetPanelBounds, consumer);
+        });
+        registry.addExclusionArea(TinyRedstoneLinkConfigScreen.class, (screen, consumer) -> {
             addArea(screen.blockPreviewBounds, consumer);
             addArea(screen.presetPanelBounds, consumer);
         });

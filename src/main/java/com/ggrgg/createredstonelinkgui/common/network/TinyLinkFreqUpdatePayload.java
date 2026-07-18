@@ -1,5 +1,6 @@
 package com.ggrgg.createredstonelinkgui.common.network;
 
+import com.ggrgg.createredstonelinkgui.CreateRedstoneLinkGUI;
 import com.ggrgg.createredstonelinkgui.common.TinyRedstoneCreateCompatibility;
 
 import net.minecraft.core.BlockPos;
@@ -45,15 +46,24 @@ public record TinyLinkFreqUpdatePayload(BlockPos pos, int cellIndex, boolean tra
             BlockPos pos = payload.pos();
 
             // Distance check
-            if (player.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) > 64.0) return;
+            if (player.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) > 64.0) {
+                CreateRedstoneLinkGUI.LOGGER.warn("TinyLinkFreqUpdatePayload: Player too far from {}", pos);
+                return;
+            }
 
             // Find cell
             Object cell = TinyRedstoneCreateCompatibility.findCell(level, pos, payload.cellIndex());
-            if (cell == null) return;
+            if (cell == null) {
+                CreateRedstoneLinkGUI.LOGGER.warn("TinyLinkFreqUpdatePayload: findCell returned null for {} cellIndex={}", pos, payload.cellIndex());
+                return;
+            }
+            CreateRedstoneLinkGUI.LOGGER.info("TinyLinkFreqUpdatePayload: findCell succeeded, cell class = {}", cell.getClass().getName());
 
-            // Update frequencies and transmitter
-            TinyRedstoneCreateCompatibility.updateFrequencies(cell, payload.freq1(), payload.freq2());
-            TinyRedstoneCreateCompatibility.updateTransmitter(cell, payload.transmitter());
+            // Update frequencies and transmitter — log failures
+            boolean freqOk = TinyRedstoneCreateCompatibility.updateFrequencies(cell, payload.freq1(), payload.freq2());
+            boolean txOk = TinyRedstoneCreateCompatibility.updateTransmitter(cell, payload.transmitter());
+            if (!freqOk) CreateRedstoneLinkGUI.LOGGER.warn("TinyLinkFreqUpdatePayload: updateFrequencies failed");
+            if (!txOk) CreateRedstoneLinkGUI.LOGGER.warn("TinyLinkFreqUpdatePayload: updateTransmitter failed");
 
             // Sync
             var be = level.getBlockEntity(pos);
@@ -62,6 +72,8 @@ public record TinyLinkFreqUpdatePayload(BlockPos pos, int cellIndex, boolean tra
                 be.setChanged();
                 level.sendBlockUpdated(pos, be.getBlockState(), be.getBlockState(), 3);
             }
+
+            CreateRedstoneLinkGUI.LOGGER.info("TinyLinkFreqUpdatePayload: Update completed");
         });
     }
 }

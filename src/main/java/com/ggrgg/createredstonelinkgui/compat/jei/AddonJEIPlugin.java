@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import com.ggrgg.createredstonelinkgui.client.screen.RedstoneLinkConfigScreen;
+import com.ggrgg.createredstonelinkgui.client.screen.TinyRedstoneLinkConfigScreen;
 import com.ggrgg.createredstonelinkgui.client.screen.VoidLinkConfigScreen;
 
 import mezz.jei.api.IModPlugin;
@@ -59,6 +60,7 @@ public class AddonJEIPlugin implements IModPlugin {
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
         registration.addGhostIngredientHandler(RedstoneLinkConfigScreen.class, new RedstoneLinkGhostHandler());
         registration.addGhostIngredientHandler(VoidLinkConfigScreen.class, new VoidLinkGhostHandler());
+        registration.addGhostIngredientHandler(TinyRedstoneLinkConfigScreen.class, new TinyRedstoneLinkGhostHandler());
         registration.addGenericGuiContainerHandler(RedstoneLinkConfigScreen.class, new IGuiContainerHandler<RedstoneLinkConfigScreen>() {
             @Override
             public List<Rect2i> getGuiExtraAreas(RedstoneLinkConfigScreen screen) {
@@ -71,6 +73,15 @@ public class AddonJEIPlugin implements IModPlugin {
         registration.addGenericGuiContainerHandler(VoidLinkConfigScreen.class, new IGuiContainerHandler<VoidLinkConfigScreen>() {
             @Override
             public List<Rect2i> getGuiExtraAreas(VoidLinkConfigScreen screen) {
+                List<Rect2i> areas = new ArrayList<>();
+                if (screen.blockPreviewBounds != null) areas.add(screen.blockPreviewBounds);
+                if (screen.presetPanelBounds != null) areas.add(screen.presetPanelBounds);
+                return areas;
+            }
+        });
+        registration.addGenericGuiContainerHandler(TinyRedstoneLinkConfigScreen.class, new IGuiContainerHandler<TinyRedstoneLinkConfigScreen>() {
+            @Override
+            public List<Rect2i> getGuiExtraAreas(TinyRedstoneLinkConfigScreen screen) {
                 List<Rect2i> areas = new ArrayList<>();
                 if (screen.blockPreviewBounds != null) areas.add(screen.blockPreviewBounds);
                 if (screen.presetPanelBounds != null) areas.add(screen.presetPanelBounds);
@@ -101,6 +112,47 @@ public class AddonJEIPlugin implements IModPlugin {
         if (!symbolStacks.isEmpty()) {
             jeiRuntime.getIngredientManager().addIngredientsAtRuntime(VanillaTypes.ITEM_STACK, symbolStacks);
         }
+    }
+
+    private static class TinyRedstoneLinkGhostHandler implements IGhostIngredientHandler<TinyRedstoneLinkConfigScreen> {
+        @Override
+        public <I> List<Target<I>> getTargetsTyped(TinyRedstoneLinkConfigScreen screen, ITypedIngredient<I> typed, boolean start) {
+            var stack = typed.getIngredient(VanillaTypes.ITEM_STACK);
+            if (stack.isEmpty()) return List.of();
+            ItemStack item = stack.get();
+            List<Target<I>> targets = new ArrayList<>(10);
+            // Frequency slots
+            targets.add(new Target<>() {
+                @Override public Rect2i getArea() { return screen.slot1Bounds; }
+                @Override public void accept(I ing) { screen.updateFrequencySlot(0, item); }
+            });
+            targets.add(new Target<>() {
+                @Override public Rect2i getArea() { return screen.slot2Bounds; }
+                @Override public void accept(I ing) { screen.updateFrequencySlot(1, item); }
+            });
+            // Preset slots
+            if (screen.presetPanel != null) {
+                for (int row = 0; row < 4; row++) {
+                    for (int col = 0; col < 2; col++) {
+                        final int r = row;
+                        final int c = col;
+                        Rect2i bounds = screen.presetPanel.getSlotBounds(row, col);
+                        if (bounds != null) {
+                            targets.add(new Target<>() {
+                                @Override public Rect2i getArea() { return bounds; }
+                                @Override public void accept(I ing) {
+                                    screen.presetPanel.getPresetData().setStack(r, c, item);
+                                    net.neoforged.neoforge.network.PacketDistributor.sendToServer(
+                                        new com.ggrgg.createredstonelinkgui.common.network.PresetSlotUpdatePayload(r, c, item));
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+            return targets;
+        }
+        @Override public void onComplete() {}
     }
 
     private static class VoidLinkGhostHandler implements IGhostIngredientHandler<VoidLinkConfigScreen> {

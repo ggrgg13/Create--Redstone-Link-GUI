@@ -5,6 +5,7 @@ import com.ggrgg.createredstonelinkgui.common.menu.TinyRedstoneLinkMenu;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Config screen for TinyRedstoneLink cells (from TinyCreate mod).
@@ -42,6 +43,17 @@ public class TinyRedstoneLinkConfigScreen extends AbstractLinkConfigScreen<TinyR
             contentLeft + 65, contentTop + 64,
             this.menu
         ));
+    }
+
+    /**
+     * Override frequency update to use TinyLinkFreqUpdatePayload instead of
+     * the base class's RedstoneLinkFrequencyPayload (which targets LinkBehaviour).
+     * Both JEI and EMI drag-drop call this method.
+     */
+    @Override
+    public void updateFrequencySlot(int slotIndex, ItemStack stack) {
+        this.menu.getSlot(slotIndex).set(stack);
+        // sendUpdateToServer() is called automatically by the ghost slot callback
     }
 
     /**
