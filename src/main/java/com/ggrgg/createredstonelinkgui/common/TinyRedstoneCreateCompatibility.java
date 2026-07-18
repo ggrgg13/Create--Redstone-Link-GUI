@@ -153,6 +153,24 @@ public class TinyRedstoneCreateCompatibility {
         }
     }
 
+    /**
+     * Set the {@code dirty} flag on TinyRedstoneLink via field reflection.
+     * This is necessary because TinyRedstoneLink.tick() checks {@code dirty} to
+     * decide whether to call updatePowerState() and trigger visual re-renders.
+     * Setting it via field access is safe — it does NOT touch the method table,
+     * so PoseStack is never loaded.
+     */
+    private static void setCellDirty(Object cell) {
+        if (cell == null) return;
+        try {
+            java.lang.reflect.Field dirtyField = cell.getClass().getDeclaredField("dirty");
+            dirtyField.setAccessible(true);
+            dirtyField.setBoolean(cell, true);
+        } catch (Exception e) {
+            CreateRedstoneLinkGUI.LOGGER.warn("setCellDirty failed", e);
+        }
+    }
+
     // ==================== Frequency write ====================
     // These operate on RedstoneLinkProvider ONLY, avoiding any method-table
     // access on TinyRedstoneLink (which would trigger PoseStack loading).
@@ -173,6 +191,10 @@ public class TinyRedstoneCreateCompatibility {
             if (method == null) return false;
 
             method.invoke(provider, f1, f2);
+
+            // Signal the cell to re-evaluate its power state on the next tick
+            setCellDirty(cell);
+
             return true;
         } catch (Exception e) {
             CreateRedstoneLinkGUI.LOGGER.error("updateFrequencies failed", e);
@@ -181,6 +203,28 @@ public class TinyRedstoneCreateCompatibility {
     }
 
     // ==================== Transmitter write ====================
+
+    /**
+     * Force the RedstoneLinkNetwork to re-evaluate by calling forceUpdate() on the
+     * linkInterface. This ensures that when toggling to receiver mode, the network
+     * immediately pushes signal to the new receiver.
+     */
+    private static void forceNetworkUpdate(Object provider) {
+        if (provider == null) return;
+        try {
+            java.lang.reflect.Field linkInterfaceField = provider.getClass().getDeclaredField("linkInterface");
+            linkInterfaceField.setAccessible(true);
+            Object linkInterface = linkInterfaceField.get(provider);
+            if (linkInterface != null) {
+                Method forceUpdate = findDeclaredMethod(linkInterface.getClass(), "forceUpdate");
+                if (forceUpdate != null) {
+                    forceUpdate.invoke(linkInterface);
+                }
+            }
+        } catch (Exception e) {
+            CreateRedstoneLinkGUI.LOGGER.warn("forceNetworkUpdate failed", e);
+        }
+    }
 
     public static boolean updateTransmitter(Object cell, boolean transmitter) {
         Object provider = getLinkProvider(cell);
@@ -191,6 +235,14 @@ public class TinyRedstoneCreateCompatibility {
             if (method == null) return false;
 
             method.invoke(provider, transmitter);
+
+            // Signal the cell to re-evaluate its power state on the next tick
+            setCellDirty(cell);
+
+            // Force the network to re-evaluate immediately — needed when toggling
+            // to receiver mode so existing transmitters push their signal.
+            forceNetworkUpdate(provider);
+
             return true;
         } catch (Exception e) {
             CreateRedstoneLinkGUI.LOGGER.error("updateTransmitter failed", e);
