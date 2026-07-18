@@ -25,6 +25,8 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
+
+
 /**
  * Abstract base for redstone link and void link config screens.
  * Consolidates ~80% shared code between RedstoneLinkConfigScreen and VoidLinkConfigScreen.
@@ -107,6 +109,15 @@ public abstract class AbstractLinkConfigScreen<T extends AbstractLinkMenu>
     protected abstract int getBlockPreviewY();
 
     /**
+     * Whether the "Move this link" button should be shown.
+     * Override to false in subclasses where relocation doesn't make sense
+     * (e.g., TinyRedstoneLinkConfigScreen).
+     */
+    protected boolean hasMoveButton() {
+        return true;
+    }
+
+    /**
      * Hook for subclasses to add extra widgets (toggle, skull button, etc.).
      * Called at the end of init().
      */
@@ -148,19 +159,21 @@ public abstract class AbstractLinkConfigScreen<T extends AbstractLinkMenu>
         this.presetPanelBounds = new Rect2i(panelX, panelY,
             FrequencyPresetPanel.PANEL_WIDTH, FrequencyPresetPanel.PANEL_HEIGHT);
 
-        // === Move 按钮 ===
-        ImageButton moveButton = new ImageButton(
-            contentLeft + 10, contentTop + 63,
-            ICON_SIZE, ICON_SIZE,
-            getOverlayTexture(),
-            MOVE_UV_X, MOVE_UV_Y,
-            Component.translatable("gui.createredstonelinkgui.relocate"),
-            (btn) -> {
-                RedstoneLinkMoveHandler.startRelocating(this.menu.getPos());
-                this.minecraft.setScreen(null);
-            }
-        );
-        this.addRenderableWidget(moveButton);
+        // === Move 按钮（仅对可移动链接有效） ===
+        if (hasMoveButton()) {
+            ImageButton moveButton = new ImageButton(
+                contentLeft + 10, contentTop + 63,
+                ICON_SIZE, ICON_SIZE,
+                getOverlayTexture(),
+                MOVE_UV_X, MOVE_UV_Y,
+                Component.translatable("gui.createredstonelinkgui.relocate"),
+                (btn) -> {
+                    RedstoneLinkMoveHandler.startRelocating(this.menu.getPos());
+                    this.minecraft.setScreen(null);
+                }
+            );
+            this.addRenderableWidget(moveButton);
+        }
 
         // === 返回按钮 ===
         ImageButton backButton = new ImageButton(

@@ -2,6 +2,7 @@ package com.ggrgg.createredstonelinkgui.client.screen;
 
 import com.ggrgg.createredstonelinkgui.common.menu.TinyRedstoneLinkMenu;
 
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
@@ -37,12 +38,37 @@ public class TinyRedstoneLinkConfigScreen extends AbstractLinkConfigScreen<TinyR
     }
 
     @Override
+    protected boolean hasMoveButton() {
+        return false;
+    }
+
+    @Override
     protected void addExtraWidgets(int contentLeft, int contentTop) {
         // TX/RX toggle widget — always shown for TinyRedstoneLink cells
         this.addRenderableWidget(new TinyRedstoneLinkToggleWidget(
             contentLeft + 65, contentTop + 64,
             this.menu
         ));
+    }
+
+    /**
+     * Override renderBg to cover the Move icon baked into the overlay texture.
+     * The Move button is at (contentLeft + 10, contentTop + 63) — we fill it with
+     * the same background color as the overlay to visually hide it.
+     */
+    @Override
+    protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
+        super.renderBg(graphics, partialTick, mouseX, mouseY);
+
+        int x = (this.width - this.imageWidth) / 2;
+        int y = (this.height - this.imageHeight) / 2;
+        int contentLeft = x + (this.imageWidth - OVERLAY_WIDTH) / 2 + 3;
+        int contentTop = y + CONTENT_TOP_OFFSET;
+
+        // Cover the Move icon area — matches the overlay background color #C6C6C6
+        int moveX = contentLeft + 10;
+        int moveY = contentTop + 63;
+        graphics.fill(moveX, moveY, moveX + ICON_SIZE, moveY + ICON_SIZE, 0xFFC6C6C6);
     }
 
     /**
