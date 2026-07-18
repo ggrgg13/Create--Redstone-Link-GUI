@@ -48,6 +48,7 @@ public class TinyRedstoneLinkMenu extends AbstractLinkMenu {
 
     private final int cellIndex;
     private boolean transmitter;
+    private boolean initializing = true;
 
     @Override
     public Object getBehaviour() { return null; } // No LinkBehaviour — uses reflection instead
@@ -67,20 +68,23 @@ public class TinyRedstoneLinkMenu extends AbstractLinkMenu {
             () -> getLocalFreq(0),
             (id, stack) -> {
                 setLocalFreq(0, stack);
-                sendUpdateToServer();
+                if (!initializing) sendUpdateToServer();
             }));
         this.addSlot(new GhostRecipeSlot(1, 137, 34,
             () -> getLocalFreq(1),
             (id, stack) -> {
                 setLocalFreq(1, stack);
-                sendUpdateToServer();
+                if (!initializing) sendUpdateToServer();
             }));
 
-        // Initialize frequency stacks from the constructor argument
+        // Initialize frequency stacks from the constructor argument (suppressed by initializing flag)
         if (freqs.size() >= 2) {
             getSlot(0).set(freqs.get(0));
             getSlot(1).set(freqs.get(1));
         }
+
+        // Allow user interaction updates from now on
+        initializing = false;
 
         // 2. Preset slots at indices 2-9
         addPresetSlots(playerInventory);
@@ -122,7 +126,6 @@ public class TinyRedstoneLinkMenu extends AbstractLinkMenu {
     @Override
     protected void handleFrequencySlotClick(int slotId, int button, ClickType clickType, Player player) {
         var slot = this.getSlot(slotId);
-        ItemStack targetStack = ItemStack.EMPTY;
 
         if (button == 1 || clickType == ClickType.THROW) {
             // Right-click or Q: clear the slot
@@ -131,15 +134,12 @@ public class TinyRedstoneLinkMenu extends AbstractLinkMenu {
             // Left-click: place a single copy of the carried item; item stays on cursor
             ItemStack carried = getCarried();
             if (!carried.isEmpty()) {
-                targetStack = carried.copy();
+                ItemStack targetStack = carried.copy();
                 targetStack.setCount(1);
                 slot.set(targetStack);
             }
         }
-
-        if (player.level().isClientSide()) {
-            sendUpdateToServer();
-        }
+        // sendUpdateToServer() is already called by the ghost slot callback on slot.set()
     }
 
     // ==================== Network sync ====================
