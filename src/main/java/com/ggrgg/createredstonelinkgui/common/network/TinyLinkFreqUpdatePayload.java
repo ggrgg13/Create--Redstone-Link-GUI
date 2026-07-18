@@ -1,5 +1,6 @@
 package com.ggrgg.createredstonelinkgui.common.network;
 
+import com.ggrgg.createredstonelinkgui.CreateRedstoneLinkGUI;
 import com.ggrgg.createredstonelinkgui.common.TinyRedstoneCreateCompatibility;
 
 import net.minecraft.core.BlockPos;
@@ -11,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
@@ -44,20 +46,49 @@ public record TinyLinkFreqUpdatePayload(BlockPos pos, int cellIndex, boolean tra
             Level level = player.level();
             BlockPos pos = payload.pos();
 
-            if (player.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) > 64.0) return;
+            CreateRedstoneLinkGUI.LOGGER.info("TinyLinkFreqUpdatePayload: Received (pos={}, cellIndex={}, transmitter={}, freq1={}, freq2={})",
+                pos, payload.cellIndex(), payload.transmitter(), payload.freq1(), payload.freq2());
 
+            // Distance check
+            double distSq = player.distanceToSqr(pos.getX(), pos.getY(), pos.getZ());
+            if (distSq > 64.0) {
+                CreateRedstoneLinkGUI.LOGGER.warn("TinyLinkFreqUpdatePayload: Player too far from pos {} (distSq={})", pos, distSq);
+                return;
+            }
+            CreateRedstoneLinkGUI.LOGGER.info("TinyLinkFreqUpdatePayload: Distance check passed (distSq={})", distSq);
+
+            // Find cell
             Object cell = TinyRedstoneCreateCompatibility.findCell(level, pos, payload.cellIndex());
-            if (cell == null) return;
+            if (cell == null) {
+                // Debug: check what BlockEntity is at the position
+                BlockEntity be = level.getBlockEntity(pos);
+                CreateRedstoneLinkGUI.LOGGER.warn("TinyLinkFreqUpdatePayload: findCell returned null! pos={}, cellIndex={}, BlockEntity={}",
+                    pos, payload.cellIndex(), be != null ? be.getClass().getName() : "null");
+                return;
+            }
+            CreateRedstoneLinkGUI.LOGGER.info("TinyLinkFreqUpdatePayload: Cell found: {}", cell.getClass().getName());
 
-            TinyRedstoneCreateCompatibility.updateFrequencies(cell, payload.freq1(), payload.freq2());
-            TinyRedstoneCreateCompatibility.updateTransmitter(cell, payload.transmitter());
+            // Update frequencies
+            boolean freqUpdated = TinyRedstoneCreateCompatibility.updateFrequencies(cell, payload.freq1(), payload.freq2());
+            CreateRedstoneLinkGUI.LOGGER.info("TinyLinkFreqUpdatePayload: updateFrequencies returned {}", freqUpdated);
 
+            // Update transmitter
+            boolean txUpdated = TinyRedstoneCreateCompatibility.updateTransmitter(cell, payload.transmitter());
+            CreateRedstoneLinkGUI.LOGGER.info("TinyLinkFreqUpdatePayload: updateTransmitter returned {}", txUpdated);
+
+            // Sync
             var be = level.getBlockEntity(pos);
-            TinyRedstoneCreateCompatibility.flagSync(be);
             if (be != null) {
+                CreateRedstoneLinkGUI.LOGGER.info("TinyLinkFreqUpdatePayload: Syncing BlockEntity {}", be.getClass().getName());
+                TinyRedstoneCreateCompatibility.flagSync(be);
                 be.setChanged();
                 level.sendBlockUpdated(pos, be.getBlockState(), be.getBlockState(), 3);
+                CreateRedstoneLinkGUI.LOGGER.info("TinyLinkFreqUpdatePayload: BlockEntity synced");
+            } else {
+                CreateRedstoneLinkGUI.LOGGER.warn("TinyLinkFreqUpdatePayload: No BlockEntity at pos {}", pos);
             }
+
+            CreateRedstoneLinkGUI.LOGGER.info("TinyLinkFreqUpdatePayload: Update complete");
         });
     }
 }
