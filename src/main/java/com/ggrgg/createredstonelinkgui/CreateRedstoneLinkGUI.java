@@ -14,23 +14,26 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 
+import com.ggrgg.createredstonelinkgui.common.network.CopyToPresetPayload;
 import com.ggrgg.createredstonelinkgui.common.network.OpenLinkMenuPayload;
+import com.ggrgg.createredstonelinkgui.common.network.PasteFromPresetPayload;
+import com.ggrgg.createredstonelinkgui.common.network.PresetSlotUpdatePayload;
 import com.ggrgg.createredstonelinkgui.common.network.RedstoneLinkFrequencyPayload;
 import com.ggrgg.createredstonelinkgui.common.network.RedstoneLinkModeTogglePayload;
 import com.ggrgg.createredstonelinkgui.common.network.RedstoneLinkMovePayload;
-import com.ggrgg.createredstonelinkgui.common.network.VoidLinkClaimPayload;
-import com.ggrgg.createredstonelinkgui.common.network.CopyToPresetPayload;
-import com.ggrgg.createredstonelinkgui.common.network.PasteFromPresetPayload;
-import com.ggrgg.createredstonelinkgui.common.network.PresetSlotUpdatePayload;
-import com.ggrgg.createredstonelinkgui.common.network.TinyLinkScreenSwapPayload;
 import com.ggrgg.createredstonelinkgui.common.network.TinyLinkFreqUpdatePayload;
+import com.ggrgg.createredstonelinkgui.common.network.TinyLinkScreenSwapPayload;
+import com.ggrgg.createredstonelinkgui.common.network.VectorThrusterFrequencyPayload;
+import com.ggrgg.createredstonelinkgui.common.network.VoidLinkClaimPayload;
 import com.ggrgg.createredstonelinkgui.common.preset.FrequencyPresetData;
 import com.ggrgg.createredstonelinkgui.common.menu.RedstoneLinkMenu;
-import com.ggrgg.createredstonelinkgui.common.menu.VoidLinkMenu;
 import com.ggrgg.createredstonelinkgui.common.menu.TinyRedstoneLinkMenu;
+import com.ggrgg.createredstonelinkgui.common.menu.VectorThrusterLinkMenu;
+import com.ggrgg.createredstonelinkgui.common.menu.VoidLinkMenu;
 import com.ggrgg.createredstonelinkgui.client.screen.RedstoneLinkConfigScreen;
-import com.ggrgg.createredstonelinkgui.client.screen.VoidLinkConfigScreen;
 import com.ggrgg.createredstonelinkgui.client.screen.TinyRedstoneLinkConfigScreen;
+import com.ggrgg.createredstonelinkgui.client.screen.VectorThrusterLinkConfigScreen;
+import com.ggrgg.createredstonelinkgui.client.screen.VoidLinkConfigScreen;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod(CreateRedstoneLinkGUI.MODID)
@@ -58,6 +61,7 @@ public class CreateRedstoneLinkGUI {
         RedstoneLinkMenu.MENUS.register(modEventBus);
         VoidLinkMenu.MENUS.register(modEventBus);
         TinyRedstoneLinkMenu.MENUS.register(modEventBus);
+        VectorThrusterLinkMenu.MENUS.register(modEventBus);
         
         // Client environment isolation check to block headless server errors
         if (FMLEnvironment.dist == Dist.CLIENT) {
@@ -123,11 +127,18 @@ public class CreateRedstoneLinkGUI {
                 TinyLinkFreqUpdatePayload.CODEC,
                 TinyLinkFreqUpdatePayload::handleServer
         );
+        // Vector thruster compatibility packets
+        registrar.playToServer(
+                VectorThrusterFrequencyPayload.TYPE,
+                VectorThrusterFrequencyPayload.CODEC,
+                VectorThrusterFrequencyPayload::handleServer
+        );
     }
 
     private void registerScreens(RegisterMenuScreensEvent event) {
         event.register(RedstoneLinkMenu.TYPE.get(), RedstoneLinkConfigScreen::new);
         event.register(VoidLinkMenu.TYPE.get(), VoidLinkConfigScreen::new);
         event.register(TinyRedstoneLinkMenu.TYPE.get(), TinyRedstoneLinkConfigScreen::new);
+        event.register(VectorThrusterLinkMenu.TYPE.get(), VectorThrusterLinkConfigScreen::new);
     }
 }

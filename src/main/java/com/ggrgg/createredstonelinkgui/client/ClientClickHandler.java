@@ -3,6 +3,7 @@ package com.ggrgg.createredstonelinkgui.client;
 import com.ggrgg.createredstonelinkgui.ClientConfig;
 import com.ggrgg.createredstonelinkgui.common.VoidLinkHelper;
 import com.ggrgg.createredstonelinkgui.common.network.OpenLinkMenuPayload;
+import com.ggrgg.createredstonelinkgui.compat.propulsion.VectorThrusterHelper;
 import com.simibubi.create.content.redstone.link.LinkBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 
@@ -51,7 +52,15 @@ public class ClientClickHandler {
         boolean hasLinkBehaviour = (behaviour != null);
         boolean hasVoidLinkBehaviour = (vlb != null);
 
-        if (!hasLinkBehaviour && !hasVoidLinkBehaviour) return;
+        // Also check for vector thruster (Create: Propulsion Simulated)
+        String vectorSideKey = null;
+        boolean isVectorLoaded = VectorThrusterHelper.isLoaded();
+        if (!hasLinkBehaviour && !hasVoidLinkBehaviour && isVectorLoaded) {
+            vectorSideKey = VectorThrusterHelper.hitTest(level, pos, hitLocation);
+        }
+        boolean hasVectorBehaviour = (vectorSideKey != null) || (isVectorLoaded && VectorThrusterHelper.hasAnyBehaviour(level, pos));
+
+        if (!hasLinkBehaviour && !hasVoidLinkBehaviour && !hasVectorBehaviour) return;
 
         // Read click mode from client config (safe — only runs on client)
         ClientConfig.ClickMode clickMode = ClientConfig.CLICK_MODE.get();
@@ -63,6 +72,7 @@ public class ClientClickHandler {
 
         // Hit-test against the frequency slot(s)
         boolean hitValid = false;
+        String finalSideKey = null;
 
         if (hasLinkBehaviour) {
             if (hitAnyBlock) {
@@ -76,9 +86,29 @@ public class ClientClickHandler {
             } else {
                 hitValid = VoidLinkHelper.isHitOnAnySlot(vlb, hitLocation);
             }
+        } else if (hasVectorBehaviour) {
+            if (hitAnyBlock) {
+                // SHIFT_BLOCK mode: pick the first available side
+                hitValid = true;
+                finalSideKey = VectorThrusterHelper.hitTest(level, pos, hitLocation);
+                if (finalSideKey == null) {
+                    // No slot hit — default to first side with a behaviour
+                    for (String side : new String[]{"West", "East", "Down", "Up"}) {
+                        Object beh = VectorThrusterHelper.getBehaviour(level, pos, side);
+                        if (beh != null) {
+                            finalSideKey = side;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // Slot mode: we already did the hit test above
+                hitValid = (vectorSideKey != null);
+                finalSideKey = vectorSideKey;
+            }
         }
 
-        if (!hitValid) return;
+        if (!hitValid || finalSideKey == null) return;
 
         // Check for empty main hand
         ItemStack mainHandItem = player.getItemInHand(InteractionHand.MAIN_HAND);
@@ -89,6 +119,6 @@ public class ClientClickHandler {
         event.setSwingHand(false);
 
         // Send packet to server to open the menu
-        PacketDistributor.sendToServer(new OpenLinkMenuPayload(pos));
+        PacketDistributor.sendToServer(new OpenLinkMenuPayload(pos, finalSideKey));
     }
 }

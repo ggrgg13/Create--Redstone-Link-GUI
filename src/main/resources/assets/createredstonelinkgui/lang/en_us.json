@@ -7,6 +7,7 @@
 
   "container.createredstonelinkgui.redstone_link_menu": "Redstone Link Frequencies",
   "container.createredstonelinkgui.void_link_menu": "Void Link Frequencies",
+  "container.createredstonelinkgui.vector_thruster_link_menu": "Vector Thruster Frequencies",
 
   "createredstonelinkgui.configuration.clickMode": "Menu Trigger Mode",
   "createredstonelinkgui.configuration.clickMode.tooltip": "How to open the redstone link frequency menu (Client-side)",

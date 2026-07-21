@@ -3,8 +3,10 @@ package com.ggrgg.createredstonelinkgui.common.network;
 import com.ggrgg.createredstonelinkgui.common.TinyRedstoneCreateCompatibility;
 import com.ggrgg.createredstonelinkgui.common.preset.FrequencyPresetHelper;
 import com.ggrgg.createredstonelinkgui.common.preset.FrequencyPresetData;
+import com.ggrgg.createredstonelinkgui.compat.propulsion.VectorThrusterHelper;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -17,12 +19,10 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Client -> Server: Paste preset frequencies into the current link.
- * Supports both regular LinkBehaviour links and TinyRedstoneLink cells.
- *
- * <p>When {@code cellIndex >= 0}, writes frequencies to the TinyRedstoneLink cell
- * via reflection. Otherwise uses the existing ClipboardCloneable path.
+ * Supports regular LinkBehaviour links, TinyRedstoneLink cells, and
+ * Vector Thruster side-specific behaviours.
  */
-public record PasteFromPresetPayload(BlockPos pos, int presetIndex, int cellIndex) implements CustomPacketPayload {
+public record PasteFromPresetPayload(BlockPos pos, int presetIndex, int cellIndex, String sideKey) implements CustomPacketPayload {
 
     public static final Type<PasteFromPresetPayload> TYPE = new Type<>(
         ResourceLocation.fromNamespaceAndPath("createredstonelinkgui", "paste_from_preset")
@@ -32,6 +32,7 @@ public record PasteFromPresetPayload(BlockPos pos, int presetIndex, int cellInde
         BlockPos.STREAM_CODEC, PasteFromPresetPayload::pos,
         ByteBufCodecs.INT, PasteFromPresetPayload::presetIndex,
         ByteBufCodecs.INT, PasteFromPresetPayload::cellIndex,
+        ByteBufCodecs.STRING_UTF8, PasteFromPresetPayload::sideKey,
         PasteFromPresetPayload::new
     );
 
@@ -48,10 +49,34 @@ public record PasteFromPresetPayload(BlockPos pos, int presetIndex, int cellInde
 
             if (player.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) > 64.0) return;
 
+            // Vector thruster path (sideKey non-empty)
+            if (payload.sideKey != null && !payload.sideKey.isEmpty()) {
+                if (!VectorThrusterHelper.isLoaded()) return;
+                Object behaviour = VectorThrusterHelper.getBehaviour(level, pos, payload.sideKey);
+                if (behaviour == null) return;
+
+                FrequencyPresetData data = FrequencyPresetData.get(player);
+                CompoundTag presetTag = data.getAsTag(payload.presetIndex(), level.registryAccess());
+                if (presetTag.isEmpty()) return;
+
+                ItemStack freq1 = ItemStack.parseOptional(level.registryAccess(), presetTag.getCompound("First"));
+                ItemStack freq2 = ItemStack.parseOptional(level.registryAccess(), presetTag.getCompound("Last"));
+
+                VectorThrusterHelper.setFrequency(behaviour, true, freq1);
+                VectorThrusterHelper.setFrequency(behaviour, false, freq2);
+
+                var be = level.getBlockEntity(pos);
+                if (be != null) {
+                    be.setChanged();
+                    level.sendBlockUpdated(pos, be.getBlockState(), be.getBlockState(), 3);
+                }
+                return;
+            }
+
             if (payload.cellIndex >= 0) {
                 // TinyRedstoneLink path
                 FrequencyPresetData data = FrequencyPresetData.get(player);
-                net.minecraft.nbt.CompoundTag presetTag = data.getAsTag(payload.presetIndex(), level.registryAccess());
+                CompoundTag presetTag = data.getAsTag(payload.presetIndex(), level.registryAccess());
                 if (presetTag.isEmpty()) return;
 
                 ItemStack freq1 = ItemStack.parseOptional(level.registryAccess(), presetTag.getCompound("First"));

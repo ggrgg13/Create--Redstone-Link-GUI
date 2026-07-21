@@ -153,7 +153,7 @@ public abstract class AbstractLinkConfigScreen<T extends AbstractLinkMenu>
         this.presetPanel = new FrequencyPresetPanel(panelX, panelY, this.menu.getPos(), presetData,
             () -> !this.menu.getSlot(0).getItem().isEmpty()
                || !this.menu.getSlot(1).getItem().isEmpty(),
-            this.menu.getCellIndex());
+            this.menu.getCellIndex(), this.menu.getSideKey());
         this.presetPanelBounds = new Rect2i(panelX, panelY,
             FrequencyPresetPanel.PANEL_WIDTH, FrequencyPresetPanel.PANEL_HEIGHT);
 

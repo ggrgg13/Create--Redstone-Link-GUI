@@ -225,4 +225,12 @@ public abstract class AbstractLinkMenu extends AbstractContainerMenu {
     public int getCellIndex() {
         return -1;
     }
+
+    /**
+     * @return the side key for vector thruster slot targeting, or "" for regular links.
+     * Overridden by {@link VectorThrusterLinkMenu} to return the actual side key.
+     */
+    public String getSideKey() {
+        return "";
+    }
 }

@@ -400,6 +400,6 @@ public class SymbolPickerScreen extends Screen {
     public void removed() {
         // When this screen is closed (Escape, inventory key, or programmatic close),
         // reopen the original frequency config menu on the server.
-        PacketDistributor.sendToServer(new OpenLinkMenuPayload(blockPos));
+        PacketDistributor.sendToServer(new OpenLinkMenuPayload(blockPos, ""));
     }
 }
