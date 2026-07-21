@@ -97,6 +97,7 @@ public class SymbolPickerScreen extends Screen {
     private final BlockPos blockPos;
     private final int slotIndex;
     private final Consumer<ItemStack> onPick; // callback when a symbol is selected
+    private final Runnable onClose; // called when the screen closes (reopen original menu)
     private final List<ItemStack> digits = new ArrayList<>();
     private final List<ItemStack> uppercase = new ArrayList<>();
     private final List<ItemStack> lowercase = new ArrayList<>();
@@ -120,22 +121,35 @@ public class SymbolPickerScreen extends Screen {
 
     /**
      * Creates a SymbolPickerScreen that sends a RedstoneLinkFrequencyPayload when a symbol is picked.
+     * On close, sends OpenLinkMenuPayload to reopen the original config screen.
      */
     public SymbolPickerScreen(BlockPos blockPos, int slotIndex) {
         this(blockPos, stack -> PacketDistributor.sendToServer(
             new com.ggrgg.createredstonelinkgui.common.network.RedstoneLinkFrequencyPayload(
-                blockPos, stack, slotIndex)));
+                blockPos, stack, slotIndex)),
+            () -> PacketDistributor.sendToServer(new OpenLinkMenuPayload(blockPos, "")));
     }
 
     /**
      * Creates a SymbolPickerScreen with a custom callback for when a symbol is picked.
      * Use this for preset slots to send a PresetSlotUpdatePayload instead.
+     * On close, sends OpenLinkMenuPayload to reopen the original config screen.
      */
     public SymbolPickerScreen(BlockPos blockPos, Consumer<ItemStack> onPick) {
+        this(blockPos, onPick, () -> PacketDistributor.sendToServer(new OpenLinkMenuPayload(blockPos, "")));
+    }
+
+    /**
+     * Creates a SymbolPickerScreen with full custom callbacks for both pick and close.
+     * Use this for TinyRedstoneLink cells where both the pick action and the reopen
+     * action need custom packets (TinyLinkFreqUpdatePayload / TinyLinkScreenSwapPayload).
+     */
+    public SymbolPickerScreen(BlockPos blockPos, Consumer<ItemStack> onPick, Runnable onClose) {
         super(Component.translatable("gui.frequency.symbol_swap.title"));
         this.blockPos = blockPos;
-        this.slotIndex = -1; // unused when onPick is provided
+        this.slotIndex = -1;
         this.onPick = onPick;
+        this.onClose = onClose;
     }
 
     @Override
@@ -399,7 +413,11 @@ public class SymbolPickerScreen extends Screen {
     @Override
     public void removed() {
         // When this screen is closed (Escape, inventory key, or programmatic close),
-        // reopen the original frequency config menu on the server.
-        PacketDistributor.sendToServer(new OpenLinkMenuPayload(blockPos, ""));
+        // use the custom onClose callback to reopen the original frequency config menu.
+        // For standard redstone/void links this sends OpenLinkMenuPayload;
+        // for TinyRedstoneLink cells it sends TinyLinkScreenSwapPayload instead.
+        if (onClose != null) {
+            onClose.run();
+        }
     }
 }

@@ -1,7 +1,11 @@
 package com.ggrgg.createredstonelinkgui.client.screen;
 
 import com.ggrgg.createredstonelinkgui.common.menu.TinyRedstoneLinkMenu;
+import com.ggrgg.createredstonelinkgui.common.network.TinyLinkScreenSwapPayload;
+import com.ggrgg.createredstonelinkgui.compat.frequency.FrequencyItemHelper;
+import com.ggrgg.createredstonelinkgui.compat.frequency.SymbolPickerScreen;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -69,6 +73,41 @@ public class TinyRedstoneLinkConfigScreen extends AbstractLinkConfigScreen<TinyR
         int moveX = contentLeft + 10;
         int moveY = contentTop + 63;
         graphics.fill(moveX, moveY, moveX + ICON_SIZE, moveY + ICON_SIZE, 0xFFC6C6C6);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        // Handle middle-click on frequency slots for TinyRedstoneLink cells
+        if (button == 2) {
+            int slot = hitTestFrequencySlot(mouseX, mouseY);
+            if (slot >= 0) {
+                ItemStack current = this.menu.getSlot(slot).getItem();
+                if (FrequencyItemHelper.isFrequencySymbol(current)) {
+                    Minecraft.getInstance().setScreen(new SymbolPickerScreen(
+                        this.menu.getPos(),
+                        // onPick: update local slot and send TinyLinkFreqUpdatePayload
+                        picked -> {
+                            this.menu.getSlot(slot).set(picked);
+                            this.menu.sendUpdateToServer();
+                        },
+                        // onClose: reopen the TinyRedstoneLinkMenu via swap payload
+                        () -> {
+                            net.neoforged.neoforge.network.PacketDistributor.sendToServer(
+                                new TinyLinkScreenSwapPayload(
+                                    this.menu.getPos(),
+                                    this.menu.getCellIndex(),
+                                    this.menu.isTransmitter(),
+                                    this.menu.getSlot(0).getItem(),
+                                    this.menu.getSlot(1).getItem()));
+                        }
+                    ));
+                    return true;
+                }
+                return true; // consume click even if not a frequency symbol
+            }
+        }
+        // Fall through to the base class for preset panel handling
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     /**

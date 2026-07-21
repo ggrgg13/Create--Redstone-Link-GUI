@@ -200,7 +200,7 @@ public abstract class AbstractLinkConfigScreen<T extends AbstractLinkMenu>
         net.neoforged.neoforge.network.PacketDistributor.sendToServer(payload);
     }
 
-    private int hitTestFrequencySlot(double mouseX, double mouseY) {
+    protected int hitTestFrequencySlot(double mouseX, double mouseY) {
         if (slot1Bounds != null && slot1Bounds.contains((int) mouseX, (int) mouseY)) return 0;
         if (slot2Bounds != null && slot2Bounds.contains((int) mouseX, (int) mouseY)) return 1;
         return -1;
