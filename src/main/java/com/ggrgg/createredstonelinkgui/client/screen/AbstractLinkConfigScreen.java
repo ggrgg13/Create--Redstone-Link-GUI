@@ -243,6 +243,29 @@ public abstract class AbstractLinkConfigScreen<T extends AbstractLinkMenu>
 
         }
 
+        // Consume clicks within the preset panel visual bounds that aren't on
+        // registered preset ghost slots. Without this guard, clicking the textured
+        // background areas (header, footer, gaps between slots/buttons) falls
+        // through to super.mouseClicked() which drops the carried item.
+        if (presetPanel != null && button != 2) {
+            Rect2i visualBounds = presetPanel.getVisualBounds();
+            if (visualBounds.contains((int) mouseX, (int) mouseY)) {
+                // But let clicks on actual preset ghost slots through so the menu handles them
+                boolean onSlot = false;
+                for (int row = 0; row < FrequencyPresetData.PRESET_COUNT; row++) {
+                    for (int col = 0; col < 2; col++) {
+                        Rect2i bounds = presetPanel.getSlotBounds(row, col);
+                        if (bounds != null && bounds.contains((int) mouseX, (int) mouseY)) {
+                            onSlot = true;
+                            break;
+                        }
+                    }
+                    if (onSlot) break;
+                }
+                if (!onSlot) return true;
+            }
+        }
+
         // Middle-click on frequency slots
         if (button == 2) {
             int slot = hitTestFrequencySlot(mouseX, mouseY);
@@ -277,20 +300,6 @@ public abstract class AbstractLinkConfigScreen<T extends AbstractLinkMenu>
         // ========== 预设面板渲染（浮动在左侧外部） ==========
         if (presetPanel != null) {
             presetPanel.render(graphics, mouseX, mouseY, partialTick);
-
-            // Debug: red outline around presetPanelBounds (slot/button clickable area)
-            if (presetPanelBounds != null) {
-                graphics.renderOutline(
-                    presetPanelBounds.getX(), presetPanelBounds.getY(),
-                    presetPanelBounds.getWidth(), presetPanelBounds.getHeight(),
-                    0xFFFF0000); // red
-            }
-            // Debug: blue outline around visual bounds (rendered background area)
-            Rect2i visualBounds = presetPanel.getVisualBounds();
-            graphics.renderOutline(
-                visualBounds.getX(), visualBounds.getY(),
-                visualBounds.getWidth(), visualBounds.getHeight(),
-                0xFF0000FF); // blue
         }
 
         // ========== 频率槽位工具提示 ==========
