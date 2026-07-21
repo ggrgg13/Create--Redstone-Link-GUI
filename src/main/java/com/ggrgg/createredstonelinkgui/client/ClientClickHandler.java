@@ -75,12 +75,14 @@ public class ClientClickHandler {
         String finalSideKey = null;
 
         if (hasLinkBehaviour) {
+            finalSideKey = "";
             if (hitAnyBlock) {
                 hitValid = true;
             } else {
                 hitValid = behaviour.testHit(true, hitLocation) || behaviour.testHit(false, hitLocation);
             }
         } else if (hasVoidLinkBehaviour) {
+            finalSideKey = "";
             if (hitAnyBlock) {
                 hitValid = true;
             } else {

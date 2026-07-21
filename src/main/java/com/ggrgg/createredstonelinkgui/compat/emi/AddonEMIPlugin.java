@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 
 import com.ggrgg.createredstonelinkgui.client.screen.RedstoneLinkConfigScreen;
 import com.ggrgg.createredstonelinkgui.client.screen.TinyRedstoneLinkConfigScreen;
+import com.ggrgg.createredstonelinkgui.client.screen.VectorThrusterLinkConfigScreen;
 import com.ggrgg.createredstonelinkgui.client.screen.VoidLinkConfigScreen;
 
 import dev.emi.emi.api.EmiEntrypoint;
@@ -47,11 +48,12 @@ public class AddonEMIPlugin implements EmiPlugin {
 
     @Override
     public void register(EmiRegistry registry) {
-        // Single generic drag-drop handler for redstone, void, and tiny link screens
+        // Single generic drag-drop handler for all link screens
         var handler = new EMIDragDropHandler();
         registry.addDragDropHandler(RedstoneLinkConfigScreen.class, handler);
         registry.addDragDropHandler(VoidLinkConfigScreen.class, handler);
         registry.addDragDropHandler(TinyRedstoneLinkConfigScreen.class, handler);
+        registry.addDragDropHandler(VectorThrusterLinkConfigScreen.class, handler);
 
         registry.addExclusionArea(RedstoneLinkConfigScreen.class, (screen, consumer) -> {
             addArea(screen.blockPreviewBounds, consumer);
@@ -62,6 +64,10 @@ public class AddonEMIPlugin implements EmiPlugin {
             addArea(screen.presetPanelBounds, consumer);
         });
         registry.addExclusionArea(TinyRedstoneLinkConfigScreen.class, (screen, consumer) -> {
+            addArea(screen.blockPreviewBounds, consumer);
+            addArea(screen.presetPanelBounds, consumer);
+        });
+        registry.addExclusionArea(VectorThrusterLinkConfigScreen.class, (screen, consumer) -> {
             addArea(screen.blockPreviewBounds, consumer);
             addArea(screen.presetPanelBounds, consumer);
         });
