@@ -2,6 +2,12 @@
 
 # 1.21.1-1.9.1
 
+- Compat for Tiny Create (That was way harder than I thought)
+- Compat for Create: Propulsion Simulated
+- Improve menu behaviors
+
+# 1.21.1-1.9.1
+
 - Fix broken slots interaction caused by refactoring
 - Fix deleting items dropped into slots
 
