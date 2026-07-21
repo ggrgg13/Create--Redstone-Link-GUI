@@ -241,11 +241,6 @@ public abstract class AbstractLinkConfigScreen<T extends AbstractLinkMenu>
                 }
             }
 
-            // Consume any click within the preset panel background to prevent
-            // dropping the carried item on the ground when clicking outside slots/buttons.
-            if (presetPanelBounds != null && presetPanelBounds.contains((int) mouseX, (int) mouseY)) {
-                return true;
-            }
         }
 
         // Middle-click on frequency slots
