@@ -138,20 +138,31 @@ public abstract class AbstractLinkMenu extends AbstractContainerMenu {
      * Process a click on a ghost frequency slot: set or clear the slot display.
      * Shared logic for all link menus. Returns the ItemStack that was placed
      * (or EMPTY if cleared/no-op) for the subclass to send in its payload.
+     *
+     * <p>JEI-standard behavior:
+     * <ul>
+     *   <li>Q (throw) → clears the slot</li>
+     *   <li>Left/Right click with a grabbed item → places one copy</li>
+     *   <li>Left/Right click with empty hand → clears the slot</li>
+     * </ul>
      */
     protected ItemStack processSlotUpdate(int slotId, int button, ClickType clickType) {
         var slot = this.getSlot(slotId);
-        if (button == 1 || clickType == ClickType.THROW) {
+        // Q — always clear
+        if (clickType == ClickType.THROW) {
             slot.set(ItemStack.EMPTY);
             return ItemStack.EMPTY;
         }
         ItemStack carried = getCarried();
         if (!carried.isEmpty()) {
+            // Left or right click with a grabbed item — place one copy
             ItemStack target = carried.copy();
             target.setCount(1);
             slot.set(target);
             return target;
         }
+        // Left or right click with empty hand — clear the slot
+        slot.set(ItemStack.EMPTY);
         return ItemStack.EMPTY;
     }
 
@@ -173,27 +184,33 @@ public abstract class AbstractLinkMenu extends AbstractContainerMenu {
      * Handle clicks on preset slots (2-9).
      * All writes go through GhostRecipeSlot.set() which calls the updateCallback,
      * so there is no need for a separate direct presetData.setStack() call.
-     * The item stays on the cursor (ghost slot behavior). Right-click or Q clears
-     * the slot. Left-click with an empty cursor also clears the slot.
+     * The item stays on the cursor (ghost slot behavior).
+     *
+     * <p>JEI-standard behavior:
+     * <ul>
+     *   <li>Q (throw) → clears the slot</li>
+     *   <li>Left/Right click with a grabbed item → places one copy</li>
+     *   <li>Left/Right click with empty hand → clears the slot</li>
+     * </ul>
      */
     protected boolean handlePresetSlotClick(int slotId, int button, ClickType clickType, Player player) {
         if (slotId >= PRESET_SLOT_START && slotId < PRESET_SLOT_START + PRESET_ROWS * PRESET_SLOTS_PER_ROW) {
             var slot = this.getSlot(slotId);
 
-            // Right-click (button 1) or Q-throw: clear the slot
-            if (button == 1 || clickType == ClickType.THROW) {
+            // Q — always clear
+            if (clickType == ClickType.THROW) {
                 slot.set(ItemStack.EMPTY);
                 return true;
             }
 
-            // Left-click (button 0): place a single copy of the carried item
+            // Left or right click with a grabbed item — place one copy
             ItemStack carried = getCarried();
             if (!carried.isEmpty()) {
                 ItemStack placed = carried.copy();
                 placed.setCount(1);
                 slot.set(placed);
             } else {
-                // Carried is empty — clear the slot
+                // Left or right click with empty hand — clear the slot
                 slot.set(ItemStack.EMPTY);
             }
             return true;
