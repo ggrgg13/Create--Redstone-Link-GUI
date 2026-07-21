@@ -135,27 +135,33 @@ public abstract class AbstractLinkMenu extends AbstractContainerMenu {
     }
 
     /**
+     * Process a click on a ghost frequency slot: set or clear the slot display.
+     * Shared logic for all link menus. Returns the ItemStack that was placed
+     * (or EMPTY if cleared/no-op) for the subclass to send in its payload.
+     */
+    protected ItemStack processSlotUpdate(int slotId, int button, ClickType clickType) {
+        var slot = this.getSlot(slotId);
+        if (button == 1 || clickType == ClickType.THROW) {
+            slot.set(ItemStack.EMPTY);
+            return ItemStack.EMPTY;
+        }
+        ItemStack carried = getCarried();
+        if (!carried.isEmpty()) {
+            ItemStack target = carried.copy();
+            target.setCount(1);
+            slot.set(target);
+            return target;
+        }
+        return ItemStack.EMPTY;
+    }
+
+    /**
      * Handle clicks on frequency slots (0, 1).
      * The item stays on the cursor (ghost slot behavior), allowing the same item
      * to be placed into multiple slots. Right-click or Q clears the slot.
      */
     protected void handleFrequencySlotClick(int slotId, int button, ClickType clickType, Player player) {
-        var slot = this.getSlot(slotId);
-        ItemStack targetStack = ItemStack.EMPTY;
-
-        if (button == 1 || clickType == ClickType.THROW) {
-            // Right-click or Q: clear the slot
-            slot.set(ItemStack.EMPTY);
-        } else {
-            // Left-click: place a single copy of the carried item; item stays on cursor
-            ItemStack carried = getCarried();
-            if (!carried.isEmpty()) {
-                targetStack = carried.copy();
-                targetStack.setCount(1);
-                slot.set(targetStack);
-            }
-        }
-
+        ItemStack targetStack = processSlotUpdate(slotId, button, clickType);
         if (player.level().isClientSide()) {
             net.neoforged.neoforge.network.PacketDistributor.sendToServer(
                 new com.ggrgg.createredstonelinkgui.common.network.RedstoneLinkFrequencyPayload(this.pos, targetStack, slotId)

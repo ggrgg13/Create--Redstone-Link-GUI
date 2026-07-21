@@ -136,23 +136,14 @@ public class TinyRedstoneLinkMenu extends AbstractLinkMenu {
      * Override frequency slot clicks to use our own packet type.
      * The base class sends {@code RedstoneLinkFrequencyPayload} which talks to
      * LinkBehaviour — we need to send {@code TinyLinkFreqUpdatePayload} instead.
+     *
+     * <p>Note: The ghost slot callbacks call sendUpdateToServer() directly,
+     * so processSlotUpdate handles the slot UI and the existing callback
+     * handles the network — we only need to call processSlotUpdate here.
      */
     @Override
     protected void handleFrequencySlotClick(int slotId, int button, ClickType clickType, Player player) {
-        var slot = this.getSlot(slotId);
-
-        if (button == 1 || clickType == ClickType.THROW) {
-            // Right-click or Q: clear the slot
-            slot.set(ItemStack.EMPTY);
-        } else {
-            // Left-click: place a single copy of the carried item; item stays on cursor
-            ItemStack carried = getCarried();
-            if (!carried.isEmpty()) {
-                ItemStack targetStack = carried.copy();
-                targetStack.setCount(1);
-                slot.set(targetStack);
-            }
-        }
+        processSlotUpdate(slotId, button, clickType);
         // sendUpdateToServer() is already called by the ghost slot callback on slot.set()
     }
 

@@ -74,21 +74,7 @@ public class VectorThrusterLinkMenu extends AbstractLinkMenu {
 
     @Override
     protected void handleFrequencySlotClick(int slotId, int button, ClickType clickType, Player player) {
-        // Override to send VectorThrusterFrequencyPayload instead of RedstoneLinkFrequencyPayload
-        var slot = this.getSlot(slotId);
-        ItemStack targetStack = ItemStack.EMPTY;
-
-        if (button == 1 || clickType == ClickType.THROW) {
-            slot.set(ItemStack.EMPTY);
-        } else {
-            ItemStack carried = getCarried();
-            if (!carried.isEmpty()) {
-                targetStack = carried.copy();
-                targetStack.setCount(1);
-                slot.set(targetStack);
-            }
-        }
-
+        ItemStack targetStack = processSlotUpdate(slotId, button, clickType);
         if (player.level().isClientSide()) {
             net.neoforged.neoforge.network.PacketDistributor.sendToServer(
                 new VectorThrusterFrequencyPayload(this.pos, targetStack, slotId, this.sideKey)
