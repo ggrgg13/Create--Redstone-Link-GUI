@@ -370,8 +370,23 @@ public class FrequencyPresetPanel {
         return slotBounds.get(index);
     }
 
+    /**
+     * The full visual bounding box of the panel, including the background
+     * texture offset. This is the area where background is rendered.
+     */
+    public Rect2i getVisualBounds() {
+        return new Rect2i(panelX + BG_OFFSET_X, panelY, PANEL_WIDTH - BG_OFFSET_X, PANEL_HEIGHT);
+    }
+
     public Rect2i getBounds() {
         return new Rect2i(panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT);
+    }
+
+    /**
+     * The rendered background offset in the X direction (negative = panel extends leftwards).
+     */
+    public int getBgOffsetX() {
+        return BG_OFFSET_X;
     }
 
     public int getPanelX() { return panelX; }

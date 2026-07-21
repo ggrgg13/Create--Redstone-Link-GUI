@@ -277,6 +277,20 @@ public abstract class AbstractLinkConfigScreen<T extends AbstractLinkMenu>
         // ========== 预设面板渲染（浮动在左侧外部） ==========
         if (presetPanel != null) {
             presetPanel.render(graphics, mouseX, mouseY, partialTick);
+
+            // Debug: red outline around presetPanelBounds (slot/button clickable area)
+            if (presetPanelBounds != null) {
+                graphics.renderOutline(
+                    presetPanelBounds.getX(), presetPanelBounds.getY(),
+                    presetPanelBounds.getWidth(), presetPanelBounds.getHeight(),
+                    0xFFFF0000); // red
+            }
+            // Debug: blue outline around visual bounds (rendered background area)
+            Rect2i visualBounds = presetPanel.getVisualBounds();
+            graphics.renderOutline(
+                visualBounds.getX(), visualBounds.getY(),
+                visualBounds.getWidth(), visualBounds.getHeight(),
+                0xFF0000FF); // blue
         }
 
         // ========== 频率槽位工具提示 ==========
