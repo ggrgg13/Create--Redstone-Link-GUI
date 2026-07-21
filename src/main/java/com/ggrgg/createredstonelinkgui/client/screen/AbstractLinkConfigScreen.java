@@ -207,6 +207,32 @@ public abstract class AbstractLinkConfigScreen<T extends AbstractLinkMenu>
     }
 
     // ==================== 输入处理 ====================
+
+    /**
+     * @return true if the mouse is over a registered preset panel background area
+     *         (header, footer, gaps between slots) rather than a preset ghost slot.
+     */
+    private boolean isOnPresetBackground(double mouseX, double mouseY) {
+        if (presetPanel == null) return false;
+        Rect2i visualBounds = presetPanel.getVisualBounds();
+        if (!visualBounds.contains((int) mouseX, (int) mouseY)) return false;
+        for (int row = 0; row < FrequencyPresetData.PRESET_COUNT; row++) {
+            for (int col = 0; col < 2; col++) {
+                Rect2i bounds = presetPanel.getSlotBounds(row, col);
+                if (bounds != null && bounds.contains((int) mouseX, (int) mouseY)) return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button != 2 && isOnPresetBackground(mouseX, mouseY)) {
+            return true; // prevent vanilla from dropping the carried item
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         // Check preset panel first
@@ -243,27 +269,10 @@ public abstract class AbstractLinkConfigScreen<T extends AbstractLinkMenu>
 
         }
 
-        // Consume clicks within the preset panel visual bounds that aren't on
-        // registered preset ghost slots. Without this guard, clicking the textured
-        // background areas (header, footer, gaps between slots/buttons) falls
-        // through to super.mouseClicked() which drops the carried item.
-        if (presetPanel != null && button != 2) {
-            Rect2i visualBounds = presetPanel.getVisualBounds();
-            if (visualBounds.contains((int) mouseX, (int) mouseY)) {
-                // But let clicks on actual preset ghost slots through so the menu handles them
-                boolean onSlot = false;
-                for (int row = 0; row < FrequencyPresetData.PRESET_COUNT; row++) {
-                    for (int col = 0; col < 2; col++) {
-                        Rect2i bounds = presetPanel.getSlotBounds(row, col);
-                        if (bounds != null && bounds.contains((int) mouseX, (int) mouseY)) {
-                            onSlot = true;
-                            break;
-                        }
-                    }
-                    if (onSlot) break;
-                }
-                if (!onSlot) return true;
-            }
+        // Consume clicks within the preset panel background to prevent
+        // super.mouseClicked() from dropping the carried item.
+        if (button != 2 && isOnPresetBackground(mouseX, mouseY)) {
+            return true;
         }
 
         // Middle-click on frequency slots
