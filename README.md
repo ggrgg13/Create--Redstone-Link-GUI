@@ -24,8 +24,6 @@ Curseforge: https://www.curseforge.com/minecraft/mc-mods/create-redstone-link-gu
 - **4 preset rows** for saving/loading frequency configurations
 - **Copy button** — saves current link frequencies into a preset row
 - **Paste button** — applies saved preset frequencies to the current link
-- Presets are stored in player data
-- JEI/EMI drag drop also work for preset slots
 
 ### 🔄 Relocate
 
@@ -45,13 +43,13 @@ Curseforge: https://www.curseforge.com/minecraft/mc-mods/create-redstone-link-gu
 
 - If **Frequency Create** mod is installed, Middle-click on frequency symbols inside frequency slot to open symbol picker menu
 - Register all of **Frequency Create**'s items to JEI menu for easier picking
-- Optional dependency
 
 ### 🎨 Compatible Blocks
 
 - Works with Create's **Redstone Link** and any block using the `LinkBehaviour` method from create(meaning anthing that uses Create's frequency system)
 - Special compatibility with Create Utilities' **Void Link** and any other blocks using `VoidLinkBehaviour`
 - Special compatibility with Tiny Create's Tiny Redstone Link
+- Special compatibility with Create: Propulsion Simulated's Vector Thrusters
 
 ### ⚙️ Config
 
