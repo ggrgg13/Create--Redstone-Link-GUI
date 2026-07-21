@@ -167,12 +167,23 @@ public class FrequencyPresetPanel {
         }
     }
 
+    // Cached paste-enabled state per row, updated every render frame
+    private final boolean[] pasteEnabledCache = new boolean[FrequencyPresetData.PRESET_COUNT];
+
     private boolean isCopyGloballyEnabled() {
         return copyEnabled.get();
     }
 
     private boolean isPasteEnabled(int row) {
-        return !presetData.getStack(row, 0).isEmpty() || !presetData.getStack(row, 1).isEmpty();
+        return pasteEnabledCache[row];
+    }
+
+    /** Refresh the per-row paste-enabled cache. Called once per render. */
+    private void refreshPasteCache() {
+        for (int row = 0; row < FrequencyPresetData.PRESET_COUNT; row++) {
+            pasteEnabledCache[row] = !presetData.getStack(row, 0).isEmpty()
+                                  || !presetData.getStack(row, 1).isEmpty();
+        }
     }
 
     // ==================== 渲染入口 ====================
@@ -182,6 +193,7 @@ public class FrequencyPresetPanel {
 
     // ==================== 纹理渲染路径 ====================
     private void renderWithTexture(GuiGraphics graphics, int mouseX, int mouseY) {
+        refreshPasteCache();
         Font font = Minecraft.getInstance().font;
         boolean globalCopyEnabled = isCopyGloballyEnabled();
 

@@ -37,7 +37,7 @@ public class VectorThrusterHelper {
     private static Method METHOD_setFrequency;
     private static Method METHOD_getFrequency;
     private static Method METHOD_testHit;
-    private static Method METHOD_getStack;   // Frequency.getStack()
+    private static Method METHOD_getStack;
 
     private static void check() {
         if (checked) return;

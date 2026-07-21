@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+import com.ggrgg.createredstonelinkgui.client.screen.AbstractLinkConfigScreen;
 import com.ggrgg.createredstonelinkgui.client.screen.RedstoneLinkConfigScreen;
 import com.ggrgg.createredstonelinkgui.client.screen.TinyRedstoneLinkConfigScreen;
 import com.ggrgg.createredstonelinkgui.client.screen.VectorThrusterLinkConfigScreen;
@@ -63,6 +64,7 @@ public class AddonJEIPlugin implements IModPlugin {
         registration.addGhostIngredientHandler(VoidLinkConfigScreen.class, new VoidLinkGhostHandler());
         registration.addGhostIngredientHandler(TinyRedstoneLinkConfigScreen.class, new TinyRedstoneLinkGhostHandler());
         registration.addGhostIngredientHandler(VectorThrusterLinkConfigScreen.class, new VectorThrusterLinkGhostHandler());
+
         registration.addGenericGuiContainerHandler(RedstoneLinkConfigScreen.class, new IGuiContainerHandler<RedstoneLinkConfigScreen>() {
             @Override
             public List<Rect2i> getGuiExtraAreas(RedstoneLinkConfigScreen screen) {
@@ -125,132 +127,20 @@ public class AddonJEIPlugin implements IModPlugin {
         }
     }
 
-    private static class TinyRedstoneLinkGhostHandler implements IGhostIngredientHandler<TinyRedstoneLinkConfigScreen> {
-        @Override
-        public <I> List<Target<I>> getTargetsTyped(TinyRedstoneLinkConfigScreen screen, ITypedIngredient<I> typed, boolean start) {
-            var stack = typed.getIngredient(VanillaTypes.ITEM_STACK);
-            if (stack.isEmpty()) return List.of();
-            ItemStack item = stack.get();
-            List<Target<I>> targets = new ArrayList<>(10);
-            // Frequency slots
-            targets.add(new Target<>() {
-                @Override public Rect2i getArea() { return screen.slot1Bounds; }
-                @Override public void accept(I ing) { screen.updateFrequencySlot(0, item); }
-            });
-            targets.add(new Target<>() {
-                @Override public Rect2i getArea() { return screen.slot2Bounds; }
-                @Override public void accept(I ing) { screen.updateFrequencySlot(1, item); }
-            });
-            // Preset slots
-            if (screen.presetPanel != null) {
-                for (int row = 0; row < 4; row++) {
-                    for (int col = 0; col < 2; col++) {
-                        final int r = row;
-                        final int c = col;
-                        Rect2i bounds = screen.presetPanel.getSlotBounds(row, col);
-                        if (bounds != null) {
-                            targets.add(new Target<>() {
-                                @Override public Rect2i getArea() { return bounds; }
-                                @Override public void accept(I ing) {
-                                    screen.presetPanel.getPresetData().setStack(r, c, item);
-                                    net.neoforged.neoforge.network.PacketDistributor.sendToServer(
-                                        new com.ggrgg.createredstonelinkgui.common.network.PresetSlotUpdatePayload(r, c, item));
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-            return targets;
-        }
-        @Override public void onComplete() {}
-    }
+    // ==================== Ghost ingredient handlers ====================
 
-    private static class VoidLinkGhostHandler implements IGhostIngredientHandler<VoidLinkConfigScreen> {
-        @Override
-        public <I> List<Target<I>> getTargetsTyped(VoidLinkConfigScreen screen, ITypedIngredient<I> typed, boolean start) {
-            var stack = typed.getIngredient(VanillaTypes.ITEM_STACK);
-            if (stack.isEmpty()) return List.of();
-            ItemStack item = stack.get();
-            List<Target<I>> targets = new ArrayList<>(10);
-            // Frequency slots
-            targets.add(new Target<>() {
-                @Override public Rect2i getArea() { return screen.slot1Bounds; }
-                @Override public void accept(I ing) { screen.updateFrequencySlot(0, item); }
-            });
-            targets.add(new Target<>() {
-                @Override public Rect2i getArea() { return screen.slot2Bounds; }
-                @Override public void accept(I ing) { screen.updateFrequencySlot(1, item); }
-            });
-            // Preset slots
-            if (screen.presetPanel != null) {
-                for (int row = 0; row < 4; row++) {
-                    for (int col = 0; col < 2; col++) {
-                        final int r = row;
-                        final int c = col;
-                        Rect2i bounds = screen.presetPanel.getSlotBounds(row, col);
-                        if (bounds != null) {
-                            targets.add(new Target<>() {
-                                @Override public Rect2i getArea() { return bounds; }
-                                @Override public void accept(I ing) {
-                                    screen.presetPanel.getPresetData().setStack(r, c, item);
-                                    net.neoforged.neoforge.network.PacketDistributor.sendToServer(
-                                        new com.ggrgg.createredstonelinkgui.common.network.PresetSlotUpdatePayload(r, c, item));
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-            return targets;
-        }
-        @Override public void onComplete() {}
-    }
+    /**
+     * Shared slot-iteration logic for all link config screens.
+     * Subclasses only specify the screen type.
+     */
+    private static class RedstoneLinkGhostHandler extends AbstractGhostHandler<RedstoneLinkConfigScreen> {}
+    private static class VoidLinkGhostHandler extends AbstractGhostHandler<VoidLinkConfigScreen> {}
+    private static class TinyRedstoneLinkGhostHandler extends AbstractGhostHandler<TinyRedstoneLinkConfigScreen> {}
+    private static class VectorThrusterLinkGhostHandler extends AbstractGhostHandler<VectorThrusterLinkConfigScreen> {}
 
-    private static class VectorThrusterLinkGhostHandler implements IGhostIngredientHandler<VectorThrusterLinkConfigScreen> {
+    private static abstract class AbstractGhostHandler<T extends AbstractLinkConfigScreen<?>> implements IGhostIngredientHandler<T> {
         @Override
-        public <I> List<Target<I>> getTargetsTyped(VectorThrusterLinkConfigScreen screen, ITypedIngredient<I> typed, boolean start) {
-            var stack = typed.getIngredient(VanillaTypes.ITEM_STACK);
-            if (stack.isEmpty()) return List.of();
-            ItemStack item = stack.get();
-            List<Target<I>> targets = new ArrayList<>(10);
-            // Frequency slots
-            targets.add(new Target<>() {
-                @Override public Rect2i getArea() { return screen.slot1Bounds; }
-                @Override public void accept(I ing) { screen.updateFrequencySlot(0, item); }
-            });
-            targets.add(new Target<>() {
-                @Override public Rect2i getArea() { return screen.slot2Bounds; }
-                @Override public void accept(I ing) { screen.updateFrequencySlot(1, item); }
-            });
-            // Preset slots
-            if (screen.presetPanel != null) {
-                for (int row = 0; row < 4; row++) {
-                    for (int col = 0; col < 2; col++) {
-                        final int r = row;
-                        final int c = col;
-                        Rect2i bounds = screen.presetPanel.getSlotBounds(row, col);
-                        if (bounds != null) {
-                            targets.add(new Target<>() {
-                                @Override public Rect2i getArea() { return bounds; }
-                                @Override public void accept(I ing) {
-                                    screen.presetPanel.getPresetData().setStack(r, c, item);
-                                    net.neoforged.neoforge.network.PacketDistributor.sendToServer(
-                                        new com.ggrgg.createredstonelinkgui.common.network.PresetSlotUpdatePayload(r, c, item));
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-            return targets;
-        }
-        @Override public void onComplete() {}
-    }
-
-    private static class RedstoneLinkGhostHandler implements IGhostIngredientHandler<RedstoneLinkConfigScreen> {
-        @Override
-        public <I> List<Target<I>> getTargetsTyped(RedstoneLinkConfigScreen screen, ITypedIngredient<I> typed, boolean start) {
+        public <I> List<Target<I>> getTargetsTyped(T screen, ITypedIngredient<I> typed, boolean start) {
             var stack = typed.getIngredient(VanillaTypes.ITEM_STACK);
             if (stack.isEmpty()) return List.of();
             ItemStack item = stack.get();
