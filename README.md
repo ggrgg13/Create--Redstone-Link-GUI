@@ -51,6 +51,7 @@ Curseforge: https://www.curseforge.com/minecraft/mc-mods/create-redstone-link-gu
 
 - Works with Create's **Redstone Link** and any block using the `LinkBehaviour` method from create(meaning anthing that uses Create's frequency system)
 - Special compatibility with Create Utilities' **Void Link** and any other blocks using `VoidLinkBehaviour`
+- Special compatibility with Tiny Create's Tiny Redstone Link
 
 ### ⚙️ Config
 
