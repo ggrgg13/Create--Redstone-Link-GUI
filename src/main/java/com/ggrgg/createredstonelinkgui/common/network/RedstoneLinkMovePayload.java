@@ -2,6 +2,7 @@ package com.ggrgg.createredstonelinkgui.common.network;
 
 import com.ggrgg.createredstonelinkgui.Config;
 import com.ggrgg.createredstonelinkgui.common.SableHelper;
+import com.ggrgg.createredstonelinkgui.compat.propulsion.VectorThrusterHelper;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelConnection;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelPosition;
@@ -67,7 +68,8 @@ public record RedstoneLinkMovePayload(BlockPos sourcePos, BlockPos targetPos, Di
             LinkBehaviour sourceLink = BlockEntityBehaviour.get(sourceBE, LinkBehaviour.TYPE);
             if (sourceLink == null) {
                 Object vlb = com.ggrgg.createredstonelinkgui.common.VoidLinkHelper.getBehaviour(level, sourcePos);
-                if (vlb == null) return;
+                boolean hasVector = VectorThrusterHelper.isLoaded() && VectorThrusterHelper.hasAnyBehaviour(level, sourcePos);
+                if (vlb == null && !hasVector) return;
             }
 
             FactoryPanelSupportBehaviour gaugeSupport = BlockEntityBehaviour.get(sourceBE, FactoryPanelSupportBehaviour.TYPE);
